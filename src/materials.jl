@@ -2,13 +2,6 @@
 # Linear Elastic Isotropic Material
 # ---------------------------------
 
-struct LinearElastic <: AbstractMaterial
-    E::Float64        # Young's Modulus
-    ν::Float64        # Poisson's Ratio
-    ρ::Float64        # Density
-end
-
-
 function stress_update!(mp_group::MaterialPointGroup)
     for p_idx in 1:length(mp_group.mass)
         dim = size(mp_group.σ[p_idx], 1)
@@ -29,15 +22,7 @@ end
 # Neo-Hookean Material
 # --------------------
 
-struct NeoHookean <: AbstractMaterial
-    μ::Float64        # Shear Modulus
-    λ::Float64       # Lamé's First Parameter
-    ρ::Float64        # Density
-end
-
-function stress_update!(mp::MaterialPoint{NeoHookean})
+function stress_update!(mp_group::MaterialPointGroup)
     return
 end
 
-
-end

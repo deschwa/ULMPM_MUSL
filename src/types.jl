@@ -1,4 +1,22 @@
+using StaticArrays
+
+
+"""
+Materials
+"""
 abstract type AbstractMaterial end
+
+struct LinearElastic<:AbstractMaterial
+    E::Float64        # Young's Modulus
+    ν::Float64        # Poisson's Ratio
+    ρ::Float64        # Density
+end
+
+struct NeoHookean<:AbstractMaterial
+    μ::Float64        # Shear Modulus
+    λ::Float64       # Lamé's First Parameter
+    ρ::Float64        # Density
+end
 
 
 """
@@ -6,7 +24,7 @@ struct MaterialPointGroup
 
 Contains all information about a group of Material Points, eg. of one body or one material.
 """
-mutable struct MaterialPointGroup{MaterialType<:AbstractMaterial}
+struct MaterialPointGroup{MaterialType<:AbstractMaterial}
     pos::Vector{MVector{2, Float64}}        # Positions
     vel::Vector{MVector{2, Float64}}        # Velocities
     ext_force::Vector{MVector{2, Float64}}  # External Forces
@@ -18,7 +36,7 @@ mutable struct MaterialPointGroup{MaterialType<:AbstractMaterial}
 
     F::Vector{MMatrix{2,2,Float64,4}}       # Deformation Gradients
     σ::Vector{MMatrix{2,2,Float64,4}}       # Cauchy Stresses  
-    L::Vector{MMatrix{2,2,Float64}}         # Velocity Gradients
+    L::Vector{MMatrix{2,2,Float64,4}}       # Velocity Gradients
 
     material::MaterialType                  # Material Model
     
@@ -28,18 +46,17 @@ mutable struct MaterialPointGroup{MaterialType<:AbstractMaterial}
                                 vel::Vector{MVector{2, Float64}},
                                 mass::Vector{Float64}, 
                                 volume::Vector{Float64}, 
-                                material::MaterialType)
+                                material::MaterialType) where {MaterialType<:AbstractMaterial}
 
 
         N = length(pos)
         density = [m/v for (m,v) in zip(mass, volume)]
         volume_0 = copy(volume)
-        F = [MMatrix{2,2,Float64,4}(I) for _ in 1:N]
+        F = [MMatrix{2,2,Float64,4}(I(2)) for _ in 1:N]
         σ = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
-        L = [MMatrix{2,2,Float64}(zeros(2,2)) for _ in 1:N]
+        L = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
         ext_force = [MVector(0.0, 0.0) for _ in 1:N]
-        new(
-            pos,
+        new{material}(pos,
             vel,
             ext_force,
             mass,
@@ -49,8 +66,7 @@ mutable struct MaterialPointGroup{MaterialType<:AbstractMaterial}
             F,
             σ,
             L,
-            material
-        )
+            material)
 
     end
 
@@ -62,7 +78,7 @@ struct Grid
 
 Contains all necessary information about the grid.
 """
-mutable struct Grid
+struct Grid
     pos::Array{SVector{2, Float64}, 2}              # Positions
 
     v::Array{MVector{2, Float64}, 2}                # Velocities
@@ -80,6 +96,21 @@ mutable struct Grid
     dy::Float64                                     # Grid Spacing in y
 
     dirichlet_nodes::Vector{Tuple{Int64, Int64}}    # List of Dirichlet Node indices
+
+    function Grid(Nx, Ny, minx, maxx, miny, maxy)
+        dx = (maxx - minx) / Nx
+        dy = (maxy - miny) / Ny
+
+        pos = [@SVector [minx + (i-1)*dx, miny + (j-1)*dy] for (i,j) in (1:Nx,1:Ny)]
+
+        zero_vec_arr = [@MVector [0.0, 0.0] for _ in (1:Nx,1:Ny)]
+        
+        m = [0.0 for _ in (1:Nx,1:Ny)]
+        
+        new(Nx, Ny, pos, 
+        zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr,
+        m, dx, dy)
+    end
 end
 
 
@@ -95,6 +126,3 @@ mutable struct MPMSimulation{MPGroupTouple <: Tuple}
 end
 
 
-"""
-Materials
-"""
