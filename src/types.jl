@@ -78,6 +78,8 @@ mutable struct Grid
 
     dx::Float64                                     # Grid Spacing in x
     dy::Float64                                     # Grid Spacing in y
+
+    dirichlet_nodes::Vector{Tuple{Int64, Int64}}    # List of Dirichlet Node indices
 end
 
 
