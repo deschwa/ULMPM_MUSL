@@ -3,16 +3,16 @@ using StaticArrays
 
 
 function reset_grid!(grid::Grid)
-    zero_vector = @MVector [0.0, 0.0]
-
-    fill!(grid.v, zero_vector)
-    fill!(grid.v_new, zero_vector)
-    fill!(grid.momentum, zero_vector)
-    fill!(grid.momentum_new, zero_vector)
-    fill!(grid.f_ext, zero_vector)
-    fill!(grid.f_int, zero_vector)
-    fill!(grid.mass, 0.0)
+    for i in 1:size(grid.v, 1), j in 1:size(grid.v, 2)
+        grid.v[i,j] = @MVector [0.0, 0.0]
+        grid.v_new[i,j] = @MVector [0.0, 0.0]
+        grid.momentum[i,j] = @MVector [0.0, 0.0]
+        grid.momentum_new[i,j] = @MVector [0.0, 0.0]
+        grid.f_ext[i,j] = @MVector [0.0, 0.0]
+        grid.f_int[i,j] = @MVector [0.0, 0.0]
+    end
     
+    fill!(grid.mass, 0.0) 
 end
 
 
@@ -40,7 +40,13 @@ function p2g!(sim::MPMSimulation)
 
     Nx, Ny = size(grid.mass)
 
+    bin_maps = Dict{MaterialPointGroup, Array{Vector{Int64},2}}()
+    for mp_group in sim.mp_groups
+        bin_maps[mp_group] = create_bin_map_2x2(grid, mp_group)
+    end
+
     for i in 1:Nx, j in 1:Ny
+        
         pos_ij = grid.pos[i,j]
 
         local_m = 0.0
@@ -49,7 +55,7 @@ function p2g!(sim::MPMSimulation)
         local_f_ext = @MVector [0.0, 0.0]
 
         for mp_group in sim.mp_groups
-            bin_map = create_bin_map_2x2(grid, mp_group)
+            bin_map = bin_maps[mp_group]
             
             particle_indices = bin_map[i,j]
             
@@ -61,7 +67,7 @@ function p2g!(sim::MPMSimulation)
                 rel_pos = mp_group.pos[p_idx] - pos_ij
                 N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
 
-                println("Particle $p_idx at grid node ($i,$j): N_Ip = $N_Ip, ∇N_Ip = $∇N_Ip")
+                # println("Particle $p_idx at grid node ($i,$j): N_Ip = $N_Ip, ∇N_Ip = $∇N_Ip")
 
                 local_m += N_Ip * mass
                 local_momentum .+= N_Ip * mass * mp_group.vel[p_idx]
@@ -80,7 +86,12 @@ function p2g!(sim::MPMSimulation)
 
         # Momentum update and velocity update
         grid.momentum_new[i,j] .= local_momentum + (local_f_ext + local_f_int) * sim.dt
-        grid.v_new[i,j] .= grid.momentum_new[i,j] / local_m
-        grid.v[i,j] .= local_momentum / local_m
+        if local_m != 0.0
+            grid.v_new[i,j] .= grid.momentum_new[i,j] / local_m
+            grid.v[i,j] .= local_momentum / local_m
+        else
+            grid.v_new[i,j] .= @MVector [0.0, 0.0]
+            grid.v[i,j] .= @MVector [0.0, 0.0]
+        end
     end
 end
