@@ -1,12 +1,13 @@
-include("src/mpm.jl")
+# include("src/mpm.jl")
+# using .MPM
+# input_csv = "input/input.csv"
+# input_yaml = "input/input.yaml"
+
 using CSV
 using DataFrames
 using StaticArrays
-using .MPM
 using YAML
 
-input_csv = "input/input.csv"
-input_yaml = "input/input.yaml"
 
 function get_sim_data(input_yaml)
     file = YAML.load_file(input_yaml)
@@ -26,10 +27,10 @@ function get_sim_data(input_yaml)
     end
 
     # Grid Data
-    grid_dict =  file["grid"]
+    grid_dict =  file["grid"][1]
 
     # time Data
-    time_dict = file["time"]
+    time_dict = file["time"][1]
 
     return mat_dict, grid_dict, time_dict
     
@@ -47,10 +48,10 @@ function create_particle_distribution_from_csv(input_file, material_dict)
         type = key.type
         pos = [@MVector [Float64(group.x[i]), Float64(group.y[i])] for i in 1:length(group.x)]
         vel = [@MVector [Float64(group.vx[i]), Float64(group.vy[i])] for i in 1:length(group.vx)]
-        mass = [group.mass[i] for i in 1:length(group.mass)]
-        volume = [group.volume[i] for i in 1:length(group.volume)]
+        mass = [Float64(group.mass[i]) for i in 1:length(group.mass)]
+        volume = [Float64(group.volume[i]) for i in 1:length(group.volume)]
         material = material_dict[string(type)]
-        mp_group = MaterialPointGroup(pos, vel, mass, volume, material)
+        mp_group = MaterialPointGroup(pos, vel, mass, volume, material, string(type))
         push!(mp_groups, mp_group)
     end
 
@@ -60,12 +61,12 @@ end
 
 
 function create_grid_from_yaml(grid_dict)
-    Nx = grid_dict["Nx"]
-    Ny = grid_dict["Ny"]
-    minx = grid_dict["minx"]
-    maxx = grid_dict["maxx"]
-    miny = grid_dict["miny"]
-    maxy = grid_dict["maxy"]
+    Nx = grid_dict["N_x"]
+    Ny = grid_dict["N_y"]
+    minx = grid_dict["min_x"]
+    maxx = grid_dict["max_x"]
+    miny = grid_dict["min_y"]
+    maxy = grid_dict["max_y"]
 
     return Grid(Nx, Ny, minx, maxx, miny, maxy)
     
@@ -84,4 +85,4 @@ function create_sim_from_csv(input_csv, input_yaml)
 end
 
 
-create_sim_from_csv(input_csv, input_yaml)
+# create_sim_from_csv(input_csv, input_yaml)

@@ -18,10 +18,10 @@ end
 
 
 function create_bin_map_2x2(grid::Grid, mp_group::MaterialPointGroup)
-    Nx = size(grid.m, 1)
-    Ny = size(grid.m, 2)
+    Nx = size(grid.mass, 1)
+    Ny = size(grid.mass, 2)
 
-    bin_map = [Vector{Int64}() for _ in (1:Nx, 1:Ny)]
+    bin_map = [Vector{Int64}() for i in 1:Nx, j in 1:Ny]
 
     for particle_idx in 1:length(mp_group.mass)
         pos = mp_group.pos[particle_idx]
@@ -30,13 +30,17 @@ function create_bin_map_2x2(grid::Grid, mp_group::MaterialPointGroup)
             push!(bin_map[i, j], particle_idx)
         end
     end
+
+    return bin_map
 end
 
 
 function p2g!(sim::MPMSimulation)
     grid = sim.grid
 
-    for (i,j) in CartesianIndex(grid.mass)
+    Nx, Ny = size(grid.mass)
+
+    for i in 1:Nx, j in 1:Ny
         pos_ij = grid.pos[i,j]
 
         local_m = 0.0
@@ -52,17 +56,20 @@ function p2g!(sim::MPMSimulation)
 
 
             for p_idx in particle_indices
-                mass = sim.mp_group.mass[p_idx]
+                mass = mp_group.mass[p_idx]
 
-                rel_pos = sim.mp_group.pos[p_idx] - pos_ij
+                rel_pos = mp_group.pos[p_idx] - pos_ij
                 N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
 
+                println("Particle $p_idx at grid node ($i,$j): N_Ip = $N_Ip, ∇N_Ip = $∇N_Ip")
+
                 local_m += N_Ip * mass
-                local_momentum .+= N_Ip * mass * sim.mp_group.vel[p_idx]
+                local_momentum .+= N_Ip * mass * mp_group.vel[p_idx]
                 
-                local_f_ext .+= N_Ip * sim.mp_group.ext_force_density[p_idx] * mass 
-                local_f_int .-= sim.mp_group.volume[p_idx] * (sim.mp_group.σ[p_idx] * ∇N_Ip)
+                local_f_ext .+= N_Ip * mp_group.ext_force_density[p_idx] * mass 
+                local_f_int .-= mp_group.volume[p_idx] * (mp_group.σ[p_idx] * ∇N_Ip)
             end
+
         
         end
 

@@ -19,6 +19,17 @@ struct NeoHookean<:AbstractMaterial
 end
 
 
+# Equality overloading
+import Base.==
+
+function ==(m1::LinearElastic, m2::LinearElastic)
+    return m1.E == m2.E && m1.ν == m2.ν && m1.ρ == m2.ρ
+end
+
+function ==(m1::NeoHookean, m2::NeoHookean)
+    return m1.μ == m2.μ && m1.λ == m2.λ && m1.ρ == m2.ρ
+end
+
 """
 struct MaterialPointGroup
 
@@ -27,7 +38,7 @@ Contains all information about a group of Material Points, eg. of one body or on
 struct MaterialPointGroup{MaterialType<:AbstractMaterial}
     pos::Vector{MVector{2, Float64}}        # Positions
     vel::Vector{MVector{2, Float64}}        # Velocities
-    ext_force::Vector{MVector{2, Float64}}  # External Forces
+    ext_force_density::Vector{MVector{2, Float64}}  # External Forces
 
     mass::Vector{Float64}                   # Masses
     volume::Vector{Float64}                 # Volumes
@@ -39,14 +50,15 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
     L::Vector{MMatrix{2,2,Float64,4}}       # Velocity Gradients
 
     material::MaterialType                  # Material Model
+    type::String                            # Material Type
     
 
-    # Constructor using only pos, vel, mass, volume, and material
+    # Constructor using only pos, vel, mass, volume, and material. AbstractString is used because sometimes CSVs are read as String7
     function MaterialPointGroup(pos::Vector{MVector{2, Float64}}, 
                                 vel::Vector{MVector{2, Float64}},
                                 mass::Vector{Float64}, 
                                 volume::Vector{Float64}, 
-                                material::MaterialType) where {MaterialType<:AbstractMaterial}
+                                material::MaterialType, type::AbstractString) where {MaterialType<:AbstractMaterial}
 
 
         N = length(pos)
@@ -56,7 +68,7 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
         σ = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
         L = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
         ext_force = [MVector(0.0, 0.0) for _ in 1:N]
-        new{material}(pos,
+        new{MaterialType}(pos,
             vel,
             ext_force,
             mass,
@@ -66,7 +78,8 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
             F,
             σ,
             L,
-            material)
+            material,
+            type)
 
     end
 
@@ -94,22 +107,27 @@ struct Grid
 
     dx::Float64                                     # Grid Spacing in x
     dy::Float64                                     # Grid Spacing in y
+    minx::Float64                                   # Minimum x-coordinate
+    miny::Float64                                   # Minimum y-coordinate
 
     dirichlet_nodes::Vector{Tuple{Int64, Int64}}    # List of Dirichlet Node indices
 
-    function Grid(Nx, Ny, minx, maxx, miny, maxy)
-        dx = (maxx - minx) / Nx
-        dy = (maxy - miny) / Ny
+    function Grid(Nx::Int64, Ny::Int64, minx::Float64, maxx::Float64, miny::Float64, maxy::Float64)
+        dx::Float64 = (maxx - minx) / (Nx-1)
+        dy::Float64 = (maxy - miny) / (Ny-1)
 
-        pos = [@SVector [minx + (i-1)*dx, miny + (j-1)*dy] for (i,j) in (1:Nx,1:Ny)]
+        pos = [@SVector [round(minx + (i-1)*dx, digits=15), round(miny + (j-1)*dy, digits=15)] for i in 1:Nx, j in 1:Ny]
 
-        zero_vec_arr = [@MVector [0.0, 0.0] for _ in (1:Nx,1:Ny)]
+        zero_vec_arr = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
         
-        m = [0.0 for _ in (1:Nx,1:Ny)]
-        
-        new(Nx, Ny, pos, 
-        zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr,
-        m, dx, dy)
+        m = [0.0 for i in 1:Nx, j in 1:Ny]
+
+        empty_tuple_vector = Vector{Tuple{Int64, Int64}}()
+    
+
+        new(pos, 
+        zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr,
+        m, dx, dy, minx, miny, empty_tuple_vector)
     end
 end
 

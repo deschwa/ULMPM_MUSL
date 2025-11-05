@@ -4,6 +4,7 @@ using StaticArrays
 
 function double_mapping!(sim::MPMSimulation, alpha::Float64)
     grid = sim.grid
+    Nx, Ny = size(grid.mass)
 
     # Update Particle Positions
     for mp_group in sim.mp_groups
@@ -40,7 +41,7 @@ function double_mapping!(sim::MPMSimulation, alpha::Float64)
     end
 
     #Update grid momenta and velocities
-    for (i,j) in CartesianIndex(grid.mass)
+    for i in 1:Nx, j in 1:Ny
         pos_ij = grid.pos[i,j]
 
         local_momentum_new = @MVector [0.0, 0.0]
@@ -56,7 +57,7 @@ function double_mapping!(sim::MPMSimulation, alpha::Float64)
             for p_idx in particle_indices
                 pos_p = mp_group.pos[p_idx]
 
-                rel_pos = sim.mp_group.pos[p_idx] - pos_ij
+                rel_pos = pos_p - pos_ij
                 N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
 
                 local_momentum_new .+= N_Ip * mp_group.mass[p_idx] * mp_group.vel[p_idx]

@@ -11,6 +11,6 @@ include("g2p.jl")
 include("timestep.jl")
 
 
-export timestep!, MaterialPointGroup, Grid, MPMSimulation, LinearElastic, NeoHookean
+export set_borders_dirichlet!, timestep!, MaterialPointGroup, Grid, MPMSimulation, LinearElastic, NeoHookean
 
 end
