@@ -63,7 +63,7 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
 
         N = length(pos)
         density = [m/v for (m,v) in zip(mass, volume)]
-        volume_0 = copy(volume)
+        volume_0 = deepcopy(volume)
         F = [MMatrix{2,2,Float64,4}(I(2)) for _ in 1:N]
         σ = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
         L = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
@@ -118,7 +118,12 @@ struct Grid
 
         pos = [@SVector [round(minx + (i-1)*dx, digits=15), round(miny + (j-1)*dy, digits=15)] for i in 1:Nx, j in 1:Ny]
 
-        zero_vec_arr = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        v = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        v_new = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        momentum = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        momentum_new = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        f_ext = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
+        f_int = [@MVector [0.0, 0.0] for i in 1:Nx, j in 1:Ny]
         
         m = [0.0 for i in 1:Nx, j in 1:Ny]
 
@@ -126,7 +131,9 @@ struct Grid
     
 
         new(pos, 
-        zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr, zero_vec_arr,
+        v, v_new, 
+        momentum, momentum_new,
+        f_ext, f_int,
         m, dx, dy, minx, miny, empty_tuple_vector)
     end
 end

@@ -1,5 +1,5 @@
 using StaticArrays
-
+using Base.Threads
 
 
 function double_mapping!(sim::MPMSimulation, alpha::Float64)
@@ -8,7 +8,7 @@ function double_mapping!(sim::MPMSimulation, alpha::Float64)
 
     # Update Particle Positions
     for mp_group in sim.mp_groups
-        for p_idx in 1:length(mp_group.mass)
+        @threads for p_idx in 1:length(mp_group.mass)
             
             # Update particle position
             pos_p = mp_group.pos[p_idx]

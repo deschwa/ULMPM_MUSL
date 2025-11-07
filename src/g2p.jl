@@ -1,12 +1,12 @@
 using StaticArrays
-
+using Base.Threads
 
 function g2p!(sim::MPMSimulation)
     grid = sim.grid
 
+    
     for mp_group in sim.mp_groups
-
-        for p_idx in 1:length(mp_group.mass)
+        @threads for p_idx in 1:length(mp_group.mass)
             pos_p = mp_group.pos[p_idx]
 
             L_sum = MMatrix{2,2,Float64,4}(zeros(2,2))

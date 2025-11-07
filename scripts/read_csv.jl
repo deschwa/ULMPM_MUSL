@@ -61,12 +61,12 @@ end
 
 
 function create_grid_from_yaml(grid_dict)
-    Nx = grid_dict["N_x"]
-    Ny = grid_dict["N_y"]
-    minx = grid_dict["min_x"]
-    maxx = grid_dict["max_x"]
-    miny = grid_dict["min_y"]
-    maxy = grid_dict["max_y"]
+    Nx = Int64(grid_dict["N_x"])
+    Ny = Int64(grid_dict["N_y"])
+    minx = Float64(grid_dict["min_x"])
+    maxx = Float64(grid_dict["max_x"])
+    miny = Float64(grid_dict["min_y"])
+    maxy = Float64(grid_dict["max_y"])
 
     return Grid(Nx, Ny, minx, maxx, miny, maxy)
     
