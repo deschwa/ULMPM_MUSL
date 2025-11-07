@@ -75,7 +75,7 @@ function p2g!(sim::MPMSimulation)
                 local_f_ext .+= N_Ip * mp_group.ext_force_density[p_idx] * mass 
                 local_f_int .-= mp_group.volume[p_idx] * (mp_group.σ[p_idx] * ∇N_Ip)
             end
-
+            # println("f_ext_local = $local_f_ext")
         
         end
 
@@ -84,14 +84,24 @@ function p2g!(sim::MPMSimulation)
         grid.f_ext[i,j] .= local_f_ext
         grid.f_int[i,j] .= local_f_int
 
+        if local_f_ext[2] != 0.0
+            # println("Node ($i,$j): local_f_ext = $local_f_ext, new momentum = $(grid.momentum_new[i,j])")
+            println("Node ($i,$j): mass = $(grid.mass[i,j])")
+        end
+
         # Momentum update and velocity update
-        grid.momentum_new[i,j] .= local_momentum + (local_f_ext + local_f_int) * sim.dt
-        if local_m != 0.0
-            grid.v_new[i,j] .= grid.momentum_new[i,j] / local_m
-            grid.v[i,j] .= local_momentum / local_m
-        else
+        grid.momentum_new[i,j] .= local_momentum .+ (local_f_ext .+ local_f_int) .* sim.dt
+        if local_m <= 1e-12
             grid.v_new[i,j] .= @MVector [0.0, 0.0]
             grid.v[i,j] .= @MVector [0.0, 0.0]
+            # println("Grid node ($i,$j): mass = $(grid.mass[i,j]), local_f_ext = $local_f_ext, local_f_int = $local_f_int")
+        else
+            grid.v_new[i,j] .= grid.momentum_new[i,j] / local_m
+            grid.v[i,j] .= local_momentum / local_m
+
+            println("Node ($i,$j): momentum new should be $(local_momentum + (local_f_ext + local_f_int) * sim.dt), calculated: $(grid.momentum_new[i,j])")
+            println("f_ext at node ($i,$j): $local_f_ext, new momentum: $(grid.momentum_new[i,j]), new velocity: $(grid.v_new[i,j])")
         end
+
     end
 end

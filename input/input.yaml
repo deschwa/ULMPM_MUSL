@@ -13,5 +13,5 @@ grid:
     max_y: 1.0
 time:
   - dt: 1e-2
-    total_time: 1
+    total_time: 3e-2
   

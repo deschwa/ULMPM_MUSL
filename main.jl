@@ -38,13 +38,12 @@ calculated_steps = 0
 while sim.t < time_dict["total_time"]
     timestep!(sim, 1.0)
     print("Calculating time: ", sim.t, "\r")
-    if calculated_steps % 10 == 0
+    if calculated_steps % 1 == 0
         write_particle_csv(sim, mat_dict, particle_path(calculated_steps))
         write_grid_csv(sim, grid_path(calculated_steps))
     end
     global calculated_steps += 1
     println("Particle 1 velocity: ", sim.mp_groups[1].vel[1])
-    break
 end
 println("Simulation complete.                   ")
 
