@@ -25,13 +25,13 @@ sim = MPMSimulation(
     0.0
 )
 
-set_borders_dirichlet!(sim.grid)
+# set_borders_dirichlet!(sim.grid)
 
-display(sim.mp_groups[1])
+# display(sim.mp_groups[1])
 
-for mp_group in sim.mp_groups
-    mp_group.ext_force_density[1] .+= @MVector [0.0, -9.81]
-end
+# for mp_group in sim.mp_groups
+#     mp_group.ext_force_density[1] .+= @MVector [0.0, -9.81]
+# end
 
 println("Starting simulation...")
 calculated_steps = 0
