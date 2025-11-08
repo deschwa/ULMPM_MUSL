@@ -51,7 +51,10 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
 
     material::MaterialType                  # Material Model
     type::String                            # Material Type
-    
+
+    node_cache::Vector{MVector{4, Tuple{Int64, Int64}}} # Cache for Indices of adjacent nodes
+    N_cache::Vector{MVector{4, Float64}}                # Cache for Shape function values of corresponding nodes
+    ∇N_cache::Vector{MVector{4, MVector{2, Float64}}}   # Cache for ∇N    
 
     # Constructor using only pos, vel, mass, volume, and material. AbstractString is used because sometimes CSVs are read as String7
     function MaterialPointGroup(pos::Vector{MVector{2, Float64}}, 
@@ -62,12 +65,21 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
 
 
         N = length(pos)
+
         density = [m/v for (m,v) in zip(mass, volume)]
         volume_0 = deepcopy(volume)
+
         F = [MMatrix{2,2,Float64,4}(I(2)) for _ in 1:N]
         σ = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
         L = [MMatrix{2,2,Float64,4}(zeros(2,2)) for _ in 1:N]
+
         ext_force = [MVector(0.0, 0.0) for _ in 1:N]
+
+        node_cache = [@MVector [(0,0) for _ in 1:4] for _ in 1:N]
+        N_cache = [@MVector [0.0 for _ in 1:4] for _ in 1:N]
+        ∇N_cache = [@MVector [@MVector [0.0, 0.0] for _ in 1:4] for _ in 1:N]
+
+
         new{MaterialType}(pos,
             vel,
             ext_force,
@@ -79,7 +91,10 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
             σ,
             L,
             material,
-            type)
+            type,
+            node_cache,
+            N_cache,
+            ∇N_cache)
 
     end
 
