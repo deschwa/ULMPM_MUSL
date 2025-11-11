@@ -11,12 +11,10 @@ function g2p!(sim::MPMSimulation)
 
             L_sum = MMatrix{2,2,Float64,4}(zeros(2,2))
 
-            for (i,j) in get_adjacent_grid_nodes(pos_p, grid)
-                pos_ij = grid.pos[i,j]
-                rel_pos = pos_p - pos_ij
-                N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
+            for (idx, (i,j)) in enumerate(mp_group.node_cache[p_idx])
+                ∇N_Ip = mp_group.∇N_cache[p_idx][idx]
 
-                L_sum .+=  ∇N_Ip * mp_group.vel[p_idx]'
+                L_sum .+=  grid.v_new[i,j] * ∇N_Ip'
             end
 
             mp_group.L[p_idx] .= L_sum
@@ -28,7 +26,7 @@ function g2p!(sim::MPMSimulation)
 
         end
 
-        stress_update!(mp_group)
+        stress_update!(mp_group, sim.dt)
     end
 
 end

@@ -35,15 +35,42 @@ function create_bin_map_2x2(grid::Grid, mp_group::MaterialPointGroup)
 end
 
 
+function cache_bin_map!(mp_group::MaterialPointGroup, grid::Grid)
+    Nx = size(grid.mass, 1)
+    Ny = size(grid.mass, 2)
+
+    bin_map = [Vector{Int64}() for i in 1:Nx, j in 1:Ny]
+
+    for p_idx in 1:length(mp_group.mass)        
+        for (i,j) in mp_group.node_cache[p_idx]
+            push!(bin_map[i, j], p_idx)
+        end
+    end
+
+    mp_group.bin_map_cache .= bin_map
+end
+
+
 function p2g!(sim::MPMSimulation)
     grid = sim.grid
 
     Nx, Ny = size(grid.mass)
 
-    bin_maps = Dict{MaterialPointGroup, Array{Vector{Int64},2}}()
+    # bin_maps = Dict{MaterialPointGroup, Array{Vector{Int64},2}}()
+    # @threads for mp_group in sim.mp_groups
+    #     bin_maps[mp_group] = create_bin_map_2x2(grid, mp_group)
+    # end
+
+    # bin_maps = Dict{MaterialPointGroup, Array{Vector{Int64},2}}()
     @threads for mp_group in sim.mp_groups
-        bin_maps[mp_group] = create_bin_map_2x2(grid, mp_group)
+        # Cache shape functions and nodes
+        cache_shape_functions!(mp_group, grid)
+
+        # cache bin maps
+        cache_bin_map!(mp_group, grid)
+
     end
+
 
     @threads for i in 1:Nx
             for j in 1:Ny
@@ -56,7 +83,7 @@ function p2g!(sim::MPMSimulation)
             local_f_ext = @MVector [0.0, 0.0]
 
             for mp_group in sim.mp_groups
-                bin_map = bin_maps[mp_group]
+                bin_map = mp_group.bin_map_cache
                 
                 particle_indices = bin_map[i,j]
                 
@@ -65,8 +92,20 @@ function p2g!(sim::MPMSimulation)
                 for p_idx in particle_indices
                     mass = mp_group.mass[p_idx]
 
-                    rel_pos = mp_group.pos[p_idx] - pos_ij
-                    N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
+                    # rel_pos = mp_group.pos[p_idx] - pos_ij
+                    # N_Ip, ∇N_Ip = shape_function(rel_pos, grid.dx, grid.dy)
+
+                    # Set N_ip via cache
+                    N_Ip = 0.0
+                    ∇N_Ip = @MVector [0.0, 0.0]
+                    for k in 1:4
+                        if mp_group.node_cache[p_idx][k] == (i,j)
+                            N_Ip = mp_group.N_cache[p_idx][k]
+                            ∇N_Ip = mp_group.∇N_cache[p_idx][k]
+                            break
+                        end
+                    end
+                    # @assert N_Ip != 0.0 "Some error in the grid node caching"
 
                     # println("Particle $p_idx at grid node ($i,$j): N_Ip = $N_Ip, ∇N_Ip = $∇N_Ip")
 

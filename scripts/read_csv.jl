@@ -37,7 +37,7 @@ function get_sim_data(input_yaml)
     
 end
 
-function create_particle_distribution_from_csv(input_file, material_dict)
+function create_particle_distribution_from_csv(input_file, material_dict, Nx, Ny)
     file = CSV.read(input_file, DataFrame)
 
     grouped_df = groupby(file, :type)
@@ -51,7 +51,7 @@ function create_particle_distribution_from_csv(input_file, material_dict)
         mass = [Float64(group.mass[i]) for i in 1:length(group.mass)]
         volume = [Float64(group.volume[i]) for i in 1:length(group.volume)]
         material = material_dict[string(type)]
-        mp_group = MaterialPointGroup(pos, vel, mass, volume, material, string(type))
+        mp_group = MaterialPointGroup(pos, vel, mass, volume, material, string(type), Nx, Ny)
         push!(mp_groups, mp_group)
     end
 

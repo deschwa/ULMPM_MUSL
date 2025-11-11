@@ -54,14 +54,16 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
 
     node_cache::Vector{MVector{4, Tuple{Int64, Int64}}} # Cache for Indices of adjacent nodes
     N_cache::Vector{MVector{4, Float64}}                # Cache for Shape function values of corresponding nodes
-    ∇N_cache::Vector{MVector{4, MVector{2, Float64}}}   # Cache for ∇N    
+    ∇N_cache::Vector{MVector{4, MVector{2, Float64}}}   # Cache for ∇N  
+    bin_map_cache::Matrix{Vector{Int64}}  
 
     # Constructor using only pos, vel, mass, volume, and material. AbstractString is used because sometimes CSVs are read as String7
     function MaterialPointGroup(pos::Vector{MVector{2, Float64}}, 
                                 vel::Vector{MVector{2, Float64}},
                                 mass::Vector{Float64}, 
                                 volume::Vector{Float64}, 
-                                material::MaterialType, type::AbstractString) where {MaterialType<:AbstractMaterial}
+                                material::MaterialType, type::AbstractString,
+                                Nx::Int64, Ny::Int64) where {MaterialType<:AbstractMaterial}
 
 
         N = length(pos)
@@ -78,6 +80,7 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
         node_cache = [@MVector [(0,0) for _ in 1:4] for _ in 1:N]
         N_cache = [@MVector [0.0 for _ in 1:4] for _ in 1:N]
         ∇N_cache = [@MVector [@MVector [0.0, 0.0] for _ in 1:4] for _ in 1:N]
+        bin_map_cache = [Vector{Int64}() for i in 1:Nx, j in 1:Ny]
 
 
         new{MaterialType}(pos,
@@ -94,7 +97,8 @@ struct MaterialPointGroup{MaterialType<:AbstractMaterial}
             type,
             node_cache,
             N_cache,
-            ∇N_cache)
+            ∇N_cache,
+            bin_map_cache)
 
     end
 

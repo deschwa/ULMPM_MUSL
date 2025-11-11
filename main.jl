@@ -1,6 +1,8 @@
 include("src/mpm.jl")
 using .MPM
 
+using Base.Threads
+
 include("scripts/read_csv.jl")
 include("scripts/write_csv.jl")
 
@@ -15,7 +17,7 @@ mat_dict, grid_dict, time_dict = get_sim_data(input_yaml)
 
 
 # Create Simulation from files
-mp_groups = create_particle_distribution_from_csv(input_csv, mat_dict)
+mp_groups = create_particle_distribution_from_csv(input_csv, mat_dict, grid_dict["N_x"], grid_dict["N_y"])
 grid = create_grid_from_yaml(grid_dict)
 
 sim = MPMSimulation(
@@ -33,19 +35,22 @@ sim = MPMSimulation(
 #     mp_group.ext_force_density[1] .+= @MVector [0.0, -9.81]
 # end
 
-println("Starting simulation...")
+println("Starting simulation using $(Threads.nthreads()) Threads...")
 calculated_steps = 0
+timestep!(sim, 1.0)
+start = time()
 while sim.t < time_dict["total_time"]
     timestep!(sim, 1.0)
-    print("Calculating time: ", round(sim.t, digits=4), " or $(round(sim.t / time_dict["total_time"], digits=4)*100)%\r")
-    if calculated_steps % 50 == 0
-        write_particle_csv(sim, mat_dict, particle_path(calculated_steps))
-        write_grid_csv(sim, grid_path(calculated_steps))
-    end
+    # print("Calculating time: ", round(sim.t, digits=4), " or $(round(sim.t / time_dict["total_time"], digits=4)*100)%\r")
+    # if calculated_steps % 50 == 0
+    #     write_particle_csv(sim, mat_dict, particle_path(calculated_steps))
+    #     write_grid_csv(sim, grid_path(calculated_steps))
+    # end
     global calculated_steps += 1
     # println("$(sim.t),$(sim.mp_groups[1].pos[1][2]), $(sim.mp_groups[1].vel[1][2])")
 end
-println("Simulation complete.                   ")
+elapsed_time = time() - start
+println("Simulation completed in $elapsed_time.                   ")
 
 
 # write_particle_csv(sim, mat_dict, output_particles)
